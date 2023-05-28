@@ -121,11 +121,25 @@ const createProperty = async (req, res) => {
 */
 const updateProperty = async (req, res) => {
   try {
+
+    // const photoUrl = await cloudinary.uploader.upload(photo);
+
     const { id } = req.params;
     const { title, description, propertyType, location, price, photo } =
       req.body;
 
-    const photoUrl = await cloudinary.uploader.upload(photo);
+    const property = await Property.findById(id);
+
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    let updatedPhoto = property.photo; // Initialize with the existing photo
+
+    if (photo) {
+      const photoUrl = await cloudinary.uploader.upload(photo);
+      updatedPhoto = photoUrl.url;
+    }
 
     await Property.findByIdAndUpdate(
       { _id: id },
@@ -136,9 +150,10 @@ const updateProperty = async (req, res) => {
         propertyType,
         location,
         price,
-        photo: photoUrl.url || photo,
+        photo: updatedPhoto,
       }
     );
+
     res.status(200).json({ message: "Property updated successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
