@@ -9,16 +9,16 @@ const getAllReviews = async (req, res) => {
       _order,
       _start,
       _sort,
-      reviewer_like = "",
+    //   reviewer_like = "",
       rating_gte = 0,
     } = req.query;
   
     const query = {};
   
     // Filter by reviewer name (case-insensitive)
-    if (reviewer_like) {
-      query.reviewer = { $regex: reviewer_like, $options: "i" };
-    }
+    // if (reviewer_like) {
+    //   query.reviewer = { $regex: reviewer_like, $options: "i" };
+    // }
   
     // Filter by minimum rating
     if (rating_gte) {
