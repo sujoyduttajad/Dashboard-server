@@ -4,13 +4,48 @@ import Reviews from "../mongodb/models/reviews.js";
   Fetches all the reviews details 
 */
 const getAllReviews = async (req, res) => {
-  try {
-    const reviews = await Reviews.find({});
-    res.status(200).json(reviews);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    const {
+      _end,
+      _order,
+      _start,
+      _sort,
+      reviewer_like = "",
+      rating_gte = 0,
+    } = req.query;
+  
+    const query = {};
+  
+    // Filter by reviewer name (case-insensitive)
+    if (reviewer_like) {
+      query.reviewer = { $regex: reviewer_like, $options: "i" };
+    }
+  
+    // Filter by minimum rating
+    if (rating_gte) {
+      query.rating = { $gte: Number(rating_gte) };
+    }
+  
+    try {
+      // Count total reviews that match the query
+      const count = await Review.countDocuments(query);
+  
+      // Fetch reviews based on query, pagination, and sorting
+      const reviews = await Review.find(query)
+        .limit(Number(_end) - Number(_start))
+        .skip(Number(_start))
+        .sort({ [_sort]: _order });
+  
+      // Set custom headers for total count
+      res.header("x-total-count", count);
+      res.header("Access-Control-Expose-Headers", "x-total-count");
+  
+      // Send response
+      res.status(200).json(reviews);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
 
 /* 
   this block of code creates a new review
@@ -27,8 +62,7 @@ const createReviews = async (req, res) => {
       title,
       rating,
       description,
-      propertyType,
-      avatar,
+      property,
       reviewer,
     });
 
