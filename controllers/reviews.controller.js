@@ -1,50 +1,33 @@
 import Reviews from "../mongodb/models/reviews.js";
+import mongoose from "mongoose";
+
 
 /* 
   Fetches all the reviews details 
 */
 const getAllReviews = async (req, res) => {
-    const {
-      _end,
-      _order,
-      _start,
-      _sort,
-    //   reviewer_like = "",
-      rating_gte = 0,
-    } = req.query;
-  
-    const query = {};
-  
-    // Filter by reviewer name (case-insensitive)
-    // if (reviewer_like) {
-    //   query.reviewer = { $regex: reviewer_like, $options: "i" };
-    // }
-  
-    // Filter by minimum rating
-    if (rating_gte) {
-      query.rating = { $gte: Number(rating_gte) };
-    }
-  
-    try {
-      // Count total reviews that match the query
-      const count = await Review.countDocuments(query);
-  
-      // Fetch reviews based on query, pagination, and sorting
-      const reviews = await Review.find(query)
-        .limit(Number(_end) - Number(_start))
-        .skip(Number(_start))
-        .sort({ [_sort]: _order });
-  
-      // Set custom headers for total count
-      res.header("x-total-count", count);
-      res.header("Access-Control-Expose-Headers", "x-total-count");
-  
-      // Send response
-      res.status(200).json(reviews);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+  const { _end, _order = 'asc', _start = 0, _sort = 'createdAt', rating_gte = 0 } = req.query;
+
+  const query = {
+    rating: { $gte: Number(rating_gte) },
   };
+
+  try {
+    const count = await Reviews.countDocuments(query);
+
+    const reviews = await Reviews.find(query)
+      .sort({ [_sort]: _order === 'asc' ? 1 : -1 })
+      .limit(Number(_end) - Number(_start))
+      .skip(Number(_start));
+
+    res.header('x-total-count', count);
+    res.header('Access-Control-Expose-Headers', 'x-total-count');
+    res.status(200).json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
   
 
 /* 
@@ -52,25 +35,23 @@ const getAllReviews = async (req, res) => {
 */
 const createReviews = async (req, res) => {
   try {
-    const { title, rating, description, propertyType, avatar, reviewer } =
-      req.body;
-    const reviewsExists = await Reviews.findOne({ title });
+    const { title, rating, description, property, reviewer } = req.body;
 
-    if (reviewsExists) return res.status(200).json(reviewsExists);
+    const newReview = new Reviews({ title, rating, description, property, reviewer });
+    await newReview.save();
 
-    const newReview = await Reviews.create({
-      title,
-      rating,
-      description,
-      property,
-      reviewer,
-    });
-
-    res.status(200).json(newReview);
+    res.status(201).json(newReview);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === 11000) {
+      res.status(400).json({ message: 'A review with this title already exists.' });
+    } else if (error.name === 'ValidationError') {
+      res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'Internal server error.' });
+    }
   }
 };
+
 
 // const getUserInfoByID = async (req, res) => {
 //   try {
