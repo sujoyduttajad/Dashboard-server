@@ -12,6 +12,8 @@ Go to the server folder by using
     cd
 ```
 
+Then run the below command to start the server
+
 ```bash
     npm start
 ```
